@@ -6,13 +6,38 @@ import monoose from "mongoose";
 // @route   POST /api/vehicles
 // @access  Private (ATS_ADMIN)
 export const addVehicle = asyncHandler(async (req, res) => {
-  const { bookingId, regnNo, engineNo, chassisNo, laneEntryTime } = req.body;
+  const { regnNo, engineNo, chassisNo, laneEntryTime } = req.body;
 
-  // Check if vehicle already exists
-  const exists = await Vehicle.findOne({ bookingId });
-  if (exists) {
+  const atsCenterId = req.user.atsCenter;
+
+  // Fetch ATS Center to get its code
+  const atsCenter = await ATSCenter.findById(atsCenterId);
+  if (!atsCenter) {
     res.status(400);
-    throw new Error('Vehicle with this Booking ID already exists');
+    throw new Error("Invalid ATS Center");
+  }
+
+  // Format current date as DDMMYYYY
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-GB").split("/").join(""); // DDMMYYYY
+
+  // Count today's vehicles for this center
+  const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+  const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+  const vehicleCount = await Vehicle.countDocuments({
+    atsCenter: atsCenterId,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
+  });
+
+  // Generate serial number and bookingId
+  const serialNumber = String(vehicleCount + 1).padStart(4, "0"); // 0001, 0002...
+  const bookingId = `${atsCenter.code}-${dateStr}-${serialNumber}`;
+
+  // Check if regnNo already exists for today
+  const duplicate = await Vehicle.findOne({ regnNo });
+  if (duplicate) {
+    res.status(400);
+    throw new Error("Vehicle with this registration number already exists");
   }
 
   const vehicle = await Vehicle.create({
@@ -20,12 +45,14 @@ export const addVehicle = asyncHandler(async (req, res) => {
     regnNo,
     engineNo,
     chassisNo,
-    atsCenter: req.user.atsCenter,
+    atsCenter: atsCenterId,
     laneEntryTime: laneEntryTime ? new Date(laneEntryTime) : new Date(),
   });
 
   res.status(201).json(vehicle);
 });
+
+
 
 
 // @desc    Get all vehicles entered today for ATS Center
@@ -39,11 +66,11 @@ export const getVehiclesByCenterToday = asyncHandler(async (req, res) => {
   endOfDay.setHours(23, 59, 59, 999);
 
   const vehicles = await Vehicle.find({
-    atsCenter: req.user.atsCenter
-    // createdAt: {
-    //   $gte: startOfDay,
-    //   $lte: endOfDay,
-    // },
+    atsCenter: req.user.atsCenter,
+    createdAt: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
   });
 
   res.json(vehicles);
@@ -57,6 +84,20 @@ export const getVehicleByBookingId = asyncHandler(async (req, res) => {
   const { bookingId } = req.params;
 
   const vehicle = await Vehicle.findOne({ bookingId }).populate("atsCenter");
+
+  if (!vehicle) {
+    res.status(404);
+    throw new Error("Vehicle not found");
+  }
+
+  res.json(vehicle);
+});
+
+
+export const getVehicleByRegnNo = asyncHandler(async (req, res) => {
+  const { regnNo } = req.params;
+
+  const vehicle = await Vehicle.findOne({ regnNo }).populate("atsCenter");
 
   if (!vehicle) {
     res.status(404);

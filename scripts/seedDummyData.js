@@ -1,13 +1,12 @@
-// scripts/seedDummyData.mjs
-
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
 import User from '../models/User.js';
 import Vehicle from '../models/Vehicle.js';
-import TestInstance from '../models/TestInstance.js';
 import ATSCenter from '../models/ATSCenter.js';
+import VisualTest from '../models/VisualTest.js';
+import FunctionalTest from '../models/FunctionalTest.js';
 
 const connectDB = async () => {
   try {
@@ -22,18 +21,28 @@ const connectDB = async () => {
   }
 };
 
+const formatDate = (date) => {
+  const d = new Date(date);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}${mm}${yyyy}`;
+};
+
 const seed = async () => {
   await connectDB();
 
   try {
-    // await Promise.all([
-    //   User.deleteMany(),
-    //   Vehicle.deleteMany(),
-    //   TestInstance.deleteMany(),
-    //   ATSCenter.deleteMany(),
-    // ]);
+    // Clear all previous data
+    await Promise.all([
+      User.deleteMany(),
+      Vehicle.deleteMany(),
+      ATSCenter.deleteMany(),
+      VisualTest.deleteMany(),
+      FunctionalTest.deleteMany(),
+    ]);
 
-    // 1. Create ATS Center (Bangalore)
+    // Create ATS Center
     const atsCenter = await ATSCenter.create({
       name: 'Bangalore ATS Center 01',
       code: 'BLR01',
@@ -42,18 +51,18 @@ const seed = async () => {
       ipWhitelist: [],
     });
 
-    // 2. Admin
-    const admin = await User.create({
-      name: 'BLR Admin',
+    // Admin
+    await User.create({
+      name: 'Admin BLR',
       email: 'admin@blr.com',
       password: 'admin123',
       role: 'ATS_ADMIN',
       atsCenter: atsCenter._id,
     });
 
-    // 3. Technicians
+    // Technicians
     const technicians = [];
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 3; i++) {
       const tech = await User.create({
         name: `Technician ${i}`,
         email: `tech${i}@blr.com`,
@@ -64,50 +73,73 @@ const seed = async () => {
       technicians.push(tech);
     }
 
-    // 4. Vehicles + TestInstances
+    // Seed 30 vehicles
+    const today = new Date();
+    const dateStr = formatDate(today);
     const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'APPROVED'];
-    const testStatuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED'];
 
-    for (let i = 1; i <= 15; i++) {
+    for (let i = 1; i <= 30; i++) {
+      const regnNo = `KA01AA${1000 + i}`;
+      const bookingId = `${atsCenter.code}-${dateStr}-${String(i).padStart(4, '0')}`;
       const status = statuses[i % statuses.length];
-      const createdAt = new Date(Date.now() - i * 600000);
+      const createdAt = new Date(today.getTime() - i * 100000);
 
       const vehicle = await Vehicle.create({
-        bookingId: `BKID${2000 + i}`,
-        regnNo: `KA01AB${1000 + i}`,
-        engineNo: `ENG${2000 + i}`,
-        chassisNo: `CHS${3000 + i}`,
-        status,
+        regnNo,
+        bookingId,
+        engineNo: `ENG${3000 + i}`,
+        chassisNo: `CHS${4000 + i}`,
         atsCenter: atsCenter._id,
+        status,
         laneEntryTime: createdAt,
         createdAt,
       });
 
-      // Only non-pending get TestInstance
-      if (status !== 'PENDING') {
-        const submittedBy = technicians[i % technicians.length]._id;
-
-        await TestInstance.create({
-          bookingId: vehicle.bookingId,
+      // VISUAL TEST SETUP
+      if (i % 3 === 0) {
+        // Every 3rd: no visual test → pending
+      } else if (i % 3 === 1) {
+        // Completed visual test
+        await VisualTest.create({
+          bookingId,
           vehicle: vehicle._id,
-          status: testStatuses[i % testStatuses.length],
-          visualTests: {
-            lights: Math.random() > 0.3 ? 'PASSED' : 'FAILED',
-            mirrors: Math.random() > 0.2 ? 'PASSED' : 'FAILED',
-            horn: 'PASSED',
-          },
-          functionalTests: {
-            brakes: Math.random() > 0.3 ? 'PASSED' : 'FAILED',
-            suspension: 'PASSED',
-            speedo: 'PASSED',
-          },
-          submittedBy,
-          createdAt,
+          rule189_8a: "P",
+          rule189_8b: "P",
+          rule189_9a: "F",
+          rule189_10: "P",
+          rule189_11a: "NA",
+          isCompleted: true,
+        });
+      } else {
+        // Incomplete visual test
+        await VisualTest.create({
+          bookingId,
+          vehicle: vehicle._id,
+          rule189_8a: "P",
+          rule189_8b: "NA",
+          isCompleted: false,
+        });
+      }
+
+      // FUNCTIONAL TEST SETUP
+      if (i % 4 === 0) {
+        await FunctionalTest.create({
+          bookingId,
+          vehicle: vehicle._id,
+          rule189_37: (Math.random() * 3).toFixed(2),
+          isCompleted: true,
+        });
+      } else if (i % 5 === 0) {
+        await FunctionalTest.create({
+          bookingId,
+          vehicle: vehicle._id,
+          rule189_37: "NA",
+          isCompleted: false,
         });
       }
     }
 
-    console.log('✅ Dummy data seeded successfully for BLR01!');
+    console.log('✅ Seeded 30 vehicles with mixed visual and functional test data.');
     process.exit(0);
   } catch (err) {
     console.error('❌ Seeding failed:', err);

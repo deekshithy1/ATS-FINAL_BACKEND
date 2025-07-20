@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const vehicleSchema = new mongoose.Schema(
   {
     bookingId: { type: String, required: true, unique: true },
-    regnNo: { type: String, required: true },
+    regnNo: { type: String, required: true ,unique: true },
     engineNo: { type: String, required: true },
     chassisNo: { type: String, required: true },
     atsCenter: {

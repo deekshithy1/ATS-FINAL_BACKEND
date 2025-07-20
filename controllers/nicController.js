@@ -1,47 +1,45 @@
-// controllers/nicController.js
 import asyncHandler from "express-async-handler";
 import Vehicle from "../models/Vehicle.js";
 import TestInstance from "../models/TestInstance.js";
 import NICLog from "../models/NICLog.js";
 
-
-
+// @desc    Get vehicles ready for approval (by regnNo instead of bookingId)
+// @route   GET /api/nic/ready
 export const getVehiclesReadyForApproval = asyncHandler(async (req, res) => {
-  // Step 1: Get completed vehicles from this ATS center
+  // Step 1: Get completed vehicles for this ATS center
   const vehicles = await Vehicle.find({
     atsCenter: req.user.atsCenter,
     status: "COMPLETED",
   });
 
-  // Step 2: Get already sent bookingIds
-  const approvedLogs = await NICLog.find({ status: "SENT" }).select(
-    "bookingId"
-  );
-  const sentBookingIds = approvedLogs.map((log) => log.bookingId);
+  // Step 2: Get already SENT logs
+  const approvedLogs = await NICLog.find({ status: "SENT" }).select("vehicle");
+  const sentVehicleIds = approvedLogs.map((log) => log.vehicle.toString());
 
-  // Step 3: Filter out vehicles already sent
+  // Step 3: Filter out already sent vehicles
   const unsentVehicles = vehicles.filter(
-    (v) => !sentBookingIds.includes(v.bookingId)
+    (v) => !sentVehicleIds.includes(v._id.toString())
   );
 
-  const bookingIds = unsentVehicles.map((v) => v.bookingId);
+  const vehicleIds = unsentVehicles.map((v) => v._id);
 
-  // Step 4: Fetch TestInstances by bookingIds
+  // Step 4: Get test instances for these vehicles
   const testInstances = await TestInstance.find({
-    bookingId: { $in: bookingIds },
+    vehicle: { $in: vehicleIds },
   }).populate("submittedBy", "name email");
 
-  // Step 5: Map test instances to bookingId
+  // Step 5: Map test instances by vehicle ID
   const testMap = {};
   testInstances.forEach((test) => {
-    if (!testMap[test.bookingId]) testMap[test.bookingId] = [];
-    testMap[test.bookingId].push(test);
+    const key = test.vehicle.toString();
+    if (!testMap[key]) testMap[key] = [];
+    testMap[key].push(test);
   });
 
   // Step 6: Attach testInstances to vehicles
   const response = unsentVehicles.map((vehicle) => {
-    const vObj = vehicle.toObject(); // convert Mongoose doc to plain JS object
-    vObj.testInstances = testMap[vehicle.bookingId] || [];
+    const vObj = vehicle.toObject();
+    vObj.testInstances = testMap[vehicle._id.toString()] || [];
     return vObj;
   });
 
@@ -52,45 +50,44 @@ export const getVehiclesReadyForApproval = asyncHandler(async (req, res) => {
 // @route   POST /api/nic/send
 // @access  ATS_ADMIN
 export const sendToNIC = asyncHandler(async (req, res) => {
-  const { bookingId } = req.body;
- 
-  const vehicle = await Vehicle.findOne({ bookingId }).populate("atsCenter");
-  const test = await TestInstance.findOne({ bookingId });
+  const { regnNo, certificateStatus, certificateType } = req.body;
 
-  if (!vehicle || !test) {
+  const vehicle = await Vehicle.findOne({ regnNo }).populate("atsCenter");
+  if (!vehicle) {
     res.status(404);
-    throw new Error("Vehicle or test instance not found");
+    throw new Error("Vehicle not found");
+  }
+
+  const test = await TestInstance.findOne({ vehicle: vehicle._id });
+  if (!test) {
+    res.status(404);
+    throw new Error("Test instance not found for this vehicle");
   }
 
   const payload = {
-    bookingId,
+    bookingId: vehicle.bookingId, // still used for NIC payload
     registrationNumber: vehicle.regnNo,
     engineNumber: vehicle.engineNo,
     chassisNumber: vehicle.chassisNo,
     centerCode: vehicle.atsCenter.code,
     timestamp: new Date().toISOString(),
-    
   };
 
-  // TODO: the api call to NIC should be implemented here
-  // For now, we will simulate the API call and response
-  // Simulated POST request to NIC (replace with axios.post(...) for real)
+  // TODO: Replace with real NIC API call
   const fakeNICResponse = {
     status: "SENT",
     message: "Data received by NIC",
   };
 
   await NICLog.create({
-    bookingId,
+    bookingId: vehicle.bookingId,
     vehicle: vehicle._id,
     status: fakeNICResponse.status,
     response: fakeNICResponse,
-    certificateStatus:req.body.certificateStatus,
-    certificateType:req.body.certificateType,
-  
+    certificateStatus,
+    certificateType,
   });
 
-  // Update vehicle status to APPROVED
   vehicle.status = "APPROVED";
   await vehicle.save();
 
@@ -100,28 +97,38 @@ export const sendToNIC = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get NIC log for a vehicle
-// @route   GET /api/nic/log/:bookingId
+// @desc    Get NIC log for a vehicle using regnNo
+// @route   GET /api/nic/log/:regnNo
 // @access  ATS_ADMIN
 export const getNICLogStatus = asyncHandler(async (req, res) => {
-  const { bookingId } = req.params;
+  const { regnNo } = req.params;
 
-  const log = await NICLog.findOne({ bookingId });
+  const vehicle = await Vehicle.findOne({ regnNo });
+  if (!vehicle) {
+    res.status(404);
+    throw new Error("Vehicle not found");
+  }
+
+  const log = await NICLog.findOne({ vehicle: vehicle._id });
 
   if (!log) {
     res.status(404);
-    throw new Error("No NIC log found for this booking ID");
+    throw new Error("No NIC log found for this vehicle");
   }
 
   res.json(log);
 });
-export const getAllVehicles= asyncHandler(async(req,res)=>{
-         const vehciles=await  NICLog.find();
-     const vehicless=await  NICLog.find().populate('vehicle') 
 
-         if(!vehciles){
-          res.status(404);
-          throw new Error("No vehcles")
-         }
-         res.json(vehicless);
-})
+// @desc    Get all NIC logs (with vehicle info)
+// @route   GET /api/nic/logs
+// @access  ATS_ADMIN
+export const getAllVehicles = asyncHandler(async (req, res) => {
+  const logs = await NICLog.find().populate("vehicle");
+
+  if (!logs || logs.length === 0) {
+    res.status(404);
+    throw new Error("No NIC logs found");
+  }
+
+  res.json(logs);
+});

@@ -9,8 +9,15 @@ const testInstanceSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    visualTests: Object,
-    functionalTests: Object,
+    visualTest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "VisualTest",
+    },
+    functionalTest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FunctionalTest",
+    },
+
     status: {
       type: String,
       enum: ["PENDING", "IN_PROGRESS", "COMPLETED"],

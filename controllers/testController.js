@@ -1,29 +1,29 @@
 import asyncHandler from "express-async-handler";
 import TestInstance from "../models/TestInstance.js";
 import Vehicle from "../models/Vehicle.js";
-import User from "../models/User.js";
+import VisualTest from "../models/VisualTest.js";
+
 
 // @desc Start test instance
 // @route POST /api/test/start
 // @access Technician
 export const startTestInstance = asyncHandler(async (req, res) => {
-  const { bookingId } = req.body;
+  const { regnNo } = req.body;
 
-  const vehicle = await Vehicle.findOne({ bookingId });
-
+  const vehicle = await Vehicle.findOne({ regnNo });
   if (!vehicle) {
     res.status(404);
     throw new Error("Vehicle not found");
   }
 
-  const existing = await TestInstance.findOne({ bookingId });
+  const existing = await TestInstance.findOne({ vehicle: vehicle._id });
   if (existing) {
     res.status(400);
     throw new Error("Test instance already exists");
   }
 
   const testInstance = await TestInstance.create({
-    bookingId,
+    bookingId: vehicle.bookingId,
     vehicle: vehicle._id,
     status: "IN_PROGRESS",
     submittedBy: req.user._id,
@@ -37,44 +37,120 @@ export const startTestInstance = asyncHandler(async (req, res) => {
 
 
 
+// @route   GET /api/test/visual/pending
+// @access  Private (Technician / Admin)
+export const getPendingVisualTests = asyncHandler(async (req, res) => {
+  const vehicles = await Vehicle.find({ atsCenter: req.user.atsCenter });
+
+  const pendingVisuals = [];
+
+  for (const vehicle of vehicles) {
+    const visualTest = await VisualTest.findOne({ vehicle: vehicle._id });
+    if (!visualTest || visualTest.isCompleted === false) {
+      pendingVisuals.push(vehicle.regnNo);
+    }
+  }
+
+  res.json({ pending: pendingVisuals });
+});
+
+
+
+// @route   POST /api/test/visual/submit
+// @access  Private (Technician)
+export const submitVisualTest = asyncHandler(async (req, res) => {
+  const { regnNo, rules } = req.body;
+  console.log("Submitting visual test for:", regnNo, "with rules:", rules);
+  if (!regnNo || !rules || typeof rules !== "object") {
+    res.status(400);
+    throw new Error("regnNo and visual rules are required");
+  }
+
+  const vehicle = await Vehicle.findOne({ regnNo });
+  if (!vehicle) {
+    res.status(404);
+    throw new Error("Vehicle not found");
+  }
+
+  let visualTest = await VisualTest.findOne({ vehicle: vehicle._id });
+
+  if (!visualTest) {
+    visualTest = new VisualTest({
+      vehicle: vehicle._id,
+      bookingId: vehicle.bookingId,
+    });
+  }
+
+  // Assign all rule values
+  for (const key in rules) {
+    if (visualTest.schema.path(key)) {
+      visualTest[key] = rules[key];
+    }
+  }
+
+  visualTest.isCompleted = true;
+  await visualTest.save();
+
+  res.status(200).json({ message: "Visual test submitted successfully" });
+});
+
+
 // @desc Submit test result (visual or functional)
 // @route POST /api/test/submit
 // @access Technician
-export const submitTestResult = asyncHandler(async (req, res) => {
-  const { bookingId, visualTests, functionalTests } = req.body;
 
-  const testInstance = await TestInstance.findOne({ bookingId });
+// for now we will not implement this function
 
-  if (!testInstance) {
-    res.status(404);
-    throw new Error("Test instance not found");
-  }
+// export const submitTestResult = asyncHandler(async (req, res) => {
+//   const { regnNo, visualTests, functionalTests } = req.body;
 
-  if (visualTests) {
-    testInstance.visualTests = { ...testInstance.visualTests, ...visualTests };
-  }
+//   const vehicle = await Vehicle.findOne({ regnNo });
+//   if (!vehicle) {
+//     res.status(404);
+//     throw new Error("Vehicle not found");
+//   }
 
-  if (functionalTests) {
-    testInstance.functionalTests = {
-      ...testInstance.functionalTests,
-      ...functionalTests,
-    };
-  }
+//   const testInstance = await TestInstance.findOne({ vehicle: vehicle._id });
+//   if (!testInstance) {
+//     res.status(404);
+//     throw new Error("Test instance not found");
+//   }
 
-  await testInstance.save();
+//   if (visualTests) {
+//     testInstance.visualTests = {
+//       ...testInstance.visualTests,
+//       ...visualTests,
+//     };
+//   }
 
-  res
-    .status(200)
-    .json({ message: "Test result updated", status: testInstance.status });
-});
+//   if (functionalTests) {
+//     testInstance.functionalTests = {
+//       ...testInstance.functionalTests,
+//       ...functionalTests,
+//     };
+//   }
 
-// @desc Get test status by bookingId
-// @route GET /api/test/:bookingId/status
+//   await testInstance.save();
+
+//   res.status(200).json({
+//     message: "Test result updated",
+//     status: testInstance.status,
+//   });
+// });
+
+// @desc Get test status by regnNo
+// @route GET /api/test/:regnNo/status
 // @access Private
 export const getTestStatusByBookingId = asyncHandler(async (req, res) => {
-  const { bookingId } = req.params;
+  const { regnNo } = req.params;
 
-  const testInstance = await TestInstance.findOne({ bookingId }).populate(
+  const vehicle = await Vehicle.findOne({ regnNo });
+  if (!vehicle) {
+    res.status(404);
+    throw new Error("Vehicle not found");
+  }
+
+  const testInstance = await TestInstance.findOne({ vehicle: vehicle._id }).populate(
     "submittedBy",
     "name role"
   );
@@ -110,38 +186,42 @@ export const getTestInstancesByCenter = asyncHandler(async (req, res) => {
   res.json(testInstances);
 });
 
-
-
 // @desc Mark test as complete (manual trigger)
 // @route POST /api/test/complete
 // @access Technician
 export const markTestAsComplete = asyncHandler(async (req, res) => {
-  const { bookingId } = req.body;
+  const { regnNo } = req.body;
 
-  const testInstance = await TestInstance.findOne({ bookingId });
-
-  if (!testInstance) {
+  const vehicle = await Vehicle.findOne({ regnNo });
+  if (!vehicle) {
     res.status(404);
-    throw new Error('Test instance not found');
+    throw new Error("Vehicle not found");
   }
 
-  const isVisualDone = testInstance.visualTests && Object.keys(testInstance.visualTests).length > 0;
-  const isFunctionalDone = testInstance.functionalTests && Object.keys(testInstance.functionalTests).length > 0;
+  const testInstance = await TestInstance.findOne({ vehicle: vehicle._id });
+  if (!testInstance) {
+    res.status(404);
+    throw new Error("Test instance not found");
+  }
+
+  const isVisualDone =
+    testInstance.visualTests &&
+    Object.keys(testInstance.visualTests).length > 0;
+  const isFunctionalDone =
+    testInstance.functionalTests &&
+    Object.keys(testInstance.functionalTests).length > 0;
 
   if (!isVisualDone || !isFunctionalDone) {
     res.status(400);
-    throw new Error('Both visual and functional tests must be submitted before completion.');
+    throw new Error("Both visual and functional tests must be submitted before completion.");
   }
 
-  testInstance.status = 'COMPLETED';
+  testInstance.status = "COMPLETED";
   await testInstance.save();
 
-  const vehicle = await Vehicle.findOne({ bookingId });
-  if (vehicle) {
-    vehicle.status = 'COMPLETED';
-    vehicle.laneExitTime = new Date();
-    await vehicle.save();
-  }
+  vehicle.status = "COMPLETED";
+  vehicle.laneExitTime = new Date();
+  await vehicle.save();
 
-  res.json({ message: 'Test marked as completed successfully.' });
+  res.json({ message: "Test marked as completed successfully." });
 });
