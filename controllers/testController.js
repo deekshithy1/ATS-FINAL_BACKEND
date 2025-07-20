@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import TestInstance from "../models/TestInstance.js";
 import Vehicle from "../models/Vehicle.js";
 import VisualTest from "../models/VisualTest.js";
+import FunctionalTest from "../models/FunctionalTest.js";
 
 
 // @desc Start test instance
@@ -93,6 +94,64 @@ export const submitVisualTest = asyncHandler(async (req, res) => {
 
   res.status(200).json({ message: "Visual test submitted successfully" });
 });
+
+
+
+// GET /api/tests/functional/pending/:rule
+export const getPendingFunctionalTestsByRule = async (req, res) => {
+  const { rule } = req.params;
+
+  if (!rule) return res.status(400).json({ message: "Rule parameter is required" });
+
+  try {
+    const pendingTests = await FunctionalTest.find({ [rule]: "NA" })
+      .populate("vehicle", "regnNo engineNo chassisNo bookingId");
+
+    const vehicles = pendingTests.map(test => test.vehicle.regnNo);
+    res.json(vehicles);
+  } catch (error) {
+    console.error("Error fetching pending functional tests:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// POST /api/tests/functional/submit
+export const submitFunctionalTest = async (req, res) => {
+  const { regnNo, rule, value } = req.body;
+
+  if (!regnNo || !rule || value == null)
+    return res.status(400).json({ message: "regnNo, rule, and value are required" });
+
+  try {
+    const vehicle = await Vehicle.findOne({ regnNo });
+    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
+
+    const test = await FunctionalTest.findOne({ vehicle: vehicle._id });
+    if (!test) return res.status(404).json({ message: "Functional test not found for vehicle" });
+
+    test[rule] = value;
+
+    // Check if all rules are completed (no more 'NA')
+    const allFields = Object.keys(test.toObject()).filter(
+      (key) => key.startsWith("rule189_") // only check rule fields
+    );
+    const incomplete = allFields.some((key) => test[key] === "NA");
+
+    test.isCompleted = !incomplete;
+    await test.save();
+
+    res.json({ message: `Functional test for ${regnNo} updated`, isCompleted: test.isCompleted });
+  } catch (error) {
+    console.error("Error submitting functional test:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+
+
+
 
 
 // @desc Submit test result (visual or functional)
