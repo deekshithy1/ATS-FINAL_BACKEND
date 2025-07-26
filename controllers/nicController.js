@@ -26,7 +26,7 @@ export const getVehiclesReadyForApproval = asyncHandler(async (req, res) => {
   // Step 4: Get test instances for these vehicles
   const testInstances = await TestInstance.find({
     vehicle: { $in: vehicleIds },
-  }).populate("submittedBy", "name email");
+  }).populate("submittedBy", "name email").populate("visualTest").populate("functionalTest");;
 
   // Step 5: Map test instances by vehicle ID
   const testMap = {};
@@ -50,7 +50,7 @@ export const getVehiclesReadyForApproval = asyncHandler(async (req, res) => {
 // @route   POST /api/nic/send
 // @access  ATS_ADMIN
 export const sendToNIC = asyncHandler(async (req, res) => {
-  const { regnNo, certificateStatus, certificateType } = req.body;
+  const { regnNo} = req.body;
 
   const vehicle = await Vehicle.findOne({ regnNo }).populate("atsCenter");
   if (!vehicle) {
@@ -84,11 +84,10 @@ export const sendToNIC = asyncHandler(async (req, res) => {
     vehicle: vehicle._id,
     status: fakeNICResponse.status,
     response: fakeNICResponse,
-    certificateStatus,
-    certificateType,
+  
   });
 
-  vehicle.status = "APPROVED";
+  vehicle.status = "SENT_TO_NIC";
   await vehicle.save();
 
   res.json({

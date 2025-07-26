@@ -14,7 +14,7 @@ const vehicleSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "APPROVED"],
+      enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "APPROVED","SENT_TO_NIC"],
       default: "PENDING",
     },
     laneEntryTime: { type: Date },

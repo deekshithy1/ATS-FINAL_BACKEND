@@ -1,7 +1,7 @@
 import asyncHandler from "express-async-handler";
 import Vehicle from "../models/Vehicle.js";
-import monoose from "mongoose";
-
+import mongoose from "mongoose";
+import ATSCenter from "../models/ATSCenter.js";
 // @desc    Add a new vehicle entry
 // @route   POST /api/vehicles
 // @access  Private (ATS_ADMIN)
@@ -72,6 +72,7 @@ export const getVehiclesByCenterToday = asyncHandler(async (req, res) => {
       $lte: endOfDay,
     },
   });
+ 
 
   res.json(vehicles);
 });
@@ -84,7 +85,7 @@ export const getVehicleByBookingId = asyncHandler(async (req, res) => {
   const { bookingId } = req.params;
 
   const vehicle = await Vehicle.findOne({ bookingId }).populate("atsCenter");
-
+    
   if (!vehicle) {
     res.status(404);
     throw new Error("Vehicle not found");
@@ -106,3 +107,28 @@ export const getVehicleByRegnNo = asyncHandler(async (req, res) => {
 
   res.json(vehicle);
 });
+export const getAllVehiclesCOmplete = asyncHandler(async (req, res) => {
+  const vehicles = await Vehicle.find(); // optionally add filter here
+
+  if (vehicles.length === 0) {
+    return res.status(404).json({ message: "No vehicles found" });
+  }
+
+  res.status(200).json(vehicles);
+});
+
+
+export const getALLVehiclesAts=asyncHandler(async(req, res) => {
+
+
+  try{
+    const vehicle=await Vehicle.find({});
+    if(vehicle.length===0){
+      return res.status(404).json({message:"No vehicles found"});
+    }
+    res.status(200).json(vehicle);
+  }
+  catch(err){
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+  })

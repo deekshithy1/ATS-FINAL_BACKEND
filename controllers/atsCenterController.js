@@ -1,6 +1,6 @@
-import ATSCenter from '../models/ATSCenter.js';
-import asyncHandler from 'express-async-handler';
 
+import asyncHandler from 'express-async-handler';
+import ATSCenter from '../models/ATSCenter.js';
 // @desc    Create a new ATS Center
 // @route   POST /api/centers
 // @access  Private (SUPER_ADMIN only)

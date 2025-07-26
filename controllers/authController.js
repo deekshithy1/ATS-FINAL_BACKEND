@@ -31,6 +31,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     {
       id: user._id,
       role: user.role,
+      ats:user.atsCenter ? user.atsCenter._id : null,
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRATION || "1d" }
@@ -43,7 +44,7 @@ export const loginUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      center: user.center || null,
+      center: user.atsCenter || null,
     },
   });
 });

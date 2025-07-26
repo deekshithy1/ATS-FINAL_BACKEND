@@ -9,8 +9,7 @@ const nicLogSchema = new mongoose.Schema(
       required: true,
     },
     requestPayload: Object,
-    certificateStatus:String,
-    certificateType:String,
+  
     encryptedChunks: [String],
     response: Object,
     status: {

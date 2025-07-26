@@ -11,8 +11,9 @@ const testInstanceSchema = new mongoose.Schema(
     },
     visualTest: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "VisualTest",
+      ref: "VisualTest", // Make sure the model name here matches exactly
     },
+    
     functionalTest: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "FunctionalTest",

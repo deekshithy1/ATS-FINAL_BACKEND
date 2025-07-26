@@ -127,6 +127,7 @@ const seed = async () => {
           bookingId,
           vehicle: vehicle._id,
           rule189_37: (Math.random() * 3).toFixed(2),
+          rule189_4: (Math.random() * 2).toFixed(2),
           isCompleted: true,
         });
       } else if (i % 5 === 0) {
@@ -134,6 +135,7 @@ const seed = async () => {
           bookingId,
           vehicle: vehicle._id,
           rule189_37: "NA",
+          rule189_4: "NA",
           isCompleted: false,
         });
       }

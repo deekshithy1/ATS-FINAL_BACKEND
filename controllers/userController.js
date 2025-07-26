@@ -95,3 +95,4 @@ export const getAllUserAtCenter = asyncHandler(async (req, res) => {
 
   res.json(technicians);
 });
+

@@ -12,6 +12,8 @@ const functionalTestSchema = new mongoose.Schema(
 
     // Acceleration Test (value could be numeric string like "2.44")
     rule189_37: { type: String, default: "NA" },
+    // Speedometer Test (value could be numeric string like "1.23")
+    rule189_4: { type: String, default: "NA" },
 
     // Completion flag
     isCompleted: { type: Boolean, default: false },

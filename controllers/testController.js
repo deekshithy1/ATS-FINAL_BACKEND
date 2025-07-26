@@ -3,11 +3,39 @@ import TestInstance from "../models/TestInstance.js";
 import Vehicle from "../models/Vehicle.js";
 import VisualTest from "../models/VisualTest.js";
 import FunctionalTest from "../models/FunctionalTest.js";
-
+import { checkAndMarkCompleted } from "../Helpers/Helper.js";
 
 // @desc Start test instance
 // @route POST /api/test/start
 // @access Technician
+// export const startTestInstance = asyncHandler(async (req, res) => {
+//   const { regnNo } = req.body;
+
+//   const vehicle = await Vehicle.findOne({ regnNo });
+//   if (!vehicle) {
+//     res.status(404);
+//     throw new Error("Vehicle not found");
+//   }
+
+//   const existing = await TestInstance.findOne({ vehicle: vehicle._id });
+//   if (existing) {
+//     res.status(400);
+//     throw new Error("Test instance already exists");
+//   }
+
+//   const testInstance = await TestInstance.create({
+//     bookingId: vehicle.bookingId,
+//     vehicle: vehicle._id,
+//     status: "IN_PROGRESS",
+
+//     submittedBy: req.user._id,
+//   });
+
+//   vehicle.status = "IN_PROGRESS";
+//   await vehicle.save();
+
+//   res.status(201).json(testInstance);
+// });
 export const startTestInstance = asyncHandler(async (req, res) => {
   const { regnNo } = req.body;
 
@@ -23,9 +51,23 @@ export const startTestInstance = asyncHandler(async (req, res) => {
     throw new Error("Test instance already exists");
   }
 
+  // ✅ Create VisualTest & FunctionalTest first
+  const visualTest = await VisualTest.create({
+    bookingId: vehicle.bookingId,
+    vehicle: vehicle._id,
+  });
+
+  const functionalTest = await FunctionalTest.create({
+    bookingId: vehicle.bookingId,
+    vehicle: vehicle._id,
+  });
+
+  // ✅ Then create TestInstance and reference the above
   const testInstance = await TestInstance.create({
     bookingId: vehicle.bookingId,
     vehicle: vehicle._id,
+    visualTest: visualTest._id,
+    functionalTest: functionalTest._id,
     status: "IN_PROGRESS",
     submittedBy: req.user._id,
   });
@@ -91,6 +133,7 @@ export const submitVisualTest = asyncHandler(async (req, res) => {
 
   visualTest.isCompleted = true;
   await visualTest.save();
+ await checkAndMarkCompleted(regnNo)
 
   res.status(200).json({ message: "Visual test submitted successfully" });
 });
@@ -98,22 +141,37 @@ export const submitVisualTest = asyncHandler(async (req, res) => {
 
 
 // GET /api/tests/functional/pending/:rule
-export const getPendingFunctionalTestsByRule = async (req, res) => {
-  const { rule } = req.params;
+// export const getPendingFunctionalTestsByRule = async (req, res) => {
+//   const { rule } = req.params;
 
+//   if (!rule) return res.status(400).json({ message: "Rule parameter is required" });
+
+//   try {
+//     // const pendingTests = await FunctionalTest.find({ [rule]: "NA" })
+//     //   .populate("vehicle", "regnNo engineNo chassisNo bookingId");
+//     // const pendingV=await TestInstance.find().populate(["functionalTest","vehicle"])
+//     // console.log(pendingV)
+//     const pendingTests=await FunctionalTest.find().populate("vehicle");
+//     // const vehicles = pendingTests.map(test => test.vehicle.regnNo);
+//     //  console.log(vehicles)
+//     console.log(pendingTests)
+//     res.json(pendingTests);
+//   } catch (error) {
+//     console.error("Error fetching pending functional tests:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
+// Example: Get all vehicles where rule189_4 === "NA"
+export const getPendingFunctionalTestsByRule = asyncHandler(async (req, res) => {
+  const { rule } = req.params;
   if (!rule) return res.status(400).json({ message: "Rule parameter is required" });
 
-  try {
-    const pendingTests = await FunctionalTest.find({ [rule]: "NA" })
-      .populate("vehicle", "regnNo engineNo chassisNo bookingId");
-
-    const vehicles = pendingTests.map(test => test.vehicle.regnNo);
-    res.json(vehicles);
-  } catch (error) {
-    console.error("Error fetching pending functional tests:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+  const tests = await FunctionalTest.find({ [rule]: "NA", isCompleted: false })
+    .populate("vehicle", "regnNo engineNo chassisNo bookingId");
+ console.log(tests.map(test => test.vehicle.regnNo))
+  res.json(tests.map(test => test.vehicle.regnNo));
+});
 
 // POST /api/tests/functional/submit
 export const submitFunctionalTest = async (req, res) => {
@@ -139,8 +197,9 @@ export const submitFunctionalTest = async (req, res) => {
 
     test.isCompleted = !incomplete;
     await test.save();
-
+   await checkAndMarkCompleted(regnNo);
     res.json({ message: `Functional test for ${regnNo} updated`, isCompleted: test.isCompleted });
+    
   } catch (error) {
     console.error("Error submitting functional test:", error);
     res.status(500).json({ message: "Server error" });

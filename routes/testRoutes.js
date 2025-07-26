@@ -15,7 +15,7 @@ import { protect, authorize } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/start", protect, authorize("TECHNICIAN"), startTestInstance);
+router.post("/start", protect, authorize("TECHNICIAN","ATS_ADMIN"), startTestInstance);
 // router.post("/submit", protect, authorize("TECHNICIAN"), submitTestResult);
 router.get("/:bookingId/status", protect, getTestStatusByBookingId);
 router.post("/completed", protect, authorize("TECHNICIAN"), markTestAsComplete);
