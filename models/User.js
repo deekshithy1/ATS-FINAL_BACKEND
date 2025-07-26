@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "ATSCenter",
       required: function () {
-        return this.role !== "SUPER_ADMIN"&&this.role !== "OFFICER";
+        return this.role !== "SUPER_ADMIN"||this.role !== "OFFICER";
       },
     },
   },

@@ -119,10 +119,11 @@ export const getAllVehiclesCOmplete = asyncHandler(async (req, res) => {
 
 
 export const getALLVehiclesAts=asyncHandler(async(req, res) => {
-
+   const ats=req.user.atsCenter;
+   
 
   try{
-    const vehicle=await Vehicle.find({});
+    const vehicle=await Vehicle.find({atsCenter:ats});
     if(vehicle.length===0){
       return res.status(404).json({message:"No vehicles found"});
     }

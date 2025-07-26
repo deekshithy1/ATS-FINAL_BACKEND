@@ -34,18 +34,18 @@ const seed = async () => {
 
   try {
     // Clear all previous data
-    await Promise.all([
-      User.deleteMany(),
-      Vehicle.deleteMany(),
-      ATSCenter.deleteMany(),
-      VisualTest.deleteMany(),
-      FunctionalTest.deleteMany(),
-    ]);
+    // await Promise.all([
+    //   User.deleteMany(),
+    //   Vehicle.deleteMany(),
+    //   ATSCenter.deleteMany(),
+    //   VisualTest.deleteMany(),
+    //   FunctionalTest.deleteMany(),
+    // ]);
 
     // Create ATS Center
     const atsCenter = await ATSCenter.create({
-      name: 'Bangalore ATS Center 01',
-      code: 'BLR01',
+      name: 'Manglore ATS Center 01',
+      code: 'MLR 01',
       latitude: 12.9716,
       longitude: 77.5946,
       ipWhitelist: [],
@@ -53,8 +53,8 @@ const seed = async () => {
 
     // Admin
     await User.create({
-      name: 'Admin BLR',
-      email: 'admin@blr.com',
+      name: 'Admin MLR',
+      email: 'admin@mlr.com',
       password: 'admin123',
       role: 'ATS_ADMIN',
       atsCenter: atsCenter._id,
@@ -64,8 +64,8 @@ const seed = async () => {
     const technicians = [];
     for (let i = 1; i <= 3; i++) {
       const tech = await User.create({
-        name: `Technician ${i}`,
-        email: `tech${i}@blr.com`,
+        name: `Technician mlr ${i}`,
+        email: `tech${i}@mlr.com`,
         password: 'tech12345',
         role: 'TECHNICIAN',
         atsCenter: atsCenter._id,
@@ -79,7 +79,7 @@ const seed = async () => {
     const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'APPROVED'];
 
     for (let i = 1; i <= 30; i++) {
-      const regnNo = `KA01AA${1000 + i}`;
+      const regnNo = `KA01BB${1000 + i}`;
       const bookingId = `${atsCenter.code}-${dateStr}-${String(i).padStart(4, '0')}`;
       const status = statuses[i % statuses.length];
       const createdAt = new Date(today.getTime() - i * 100000);
