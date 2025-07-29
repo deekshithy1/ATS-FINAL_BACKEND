@@ -12,6 +12,7 @@ const router = express.Router();
 router.get("/", protect, authorize("SUPER_ADMIN"), getAllCenters);
 router.post("/", protect, authorize("SUPER_ADMIN"), createCenter);
 router.get("/allatsIds",protect,authorize("SUPER_ADMIN","OFFICER"),getAllCenters)
+
 router.get(
   "/code/:code",
   protect,

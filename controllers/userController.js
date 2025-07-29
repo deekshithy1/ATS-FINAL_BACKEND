@@ -96,3 +96,20 @@ export const getAllUserAtCenter = asyncHandler(async (req, res) => {
   res.json(technicians);
 });
 
+
+export const getTechniciansByATS=asyncHandler(async(req,res)=>{
+  const {id}=req.params;
+  try{
+    const response=await User.find({
+      atsCenter:id
+    });
+    if(response.length===0){
+      res.status(404).json("Users not found");
+    }
+    res.status(200).json(response);
+
+  }
+  catch(err){
+    res.status(500).json({"message":"error"})
+  }
+})

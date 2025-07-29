@@ -5,6 +5,7 @@ import {
   createTechnician,
   getAllTechnicians,
   getAllUserAtCenter,
+  getTechniciansByATS,
 } from "../controllers/userController.js";
 
 import { protect, authorize } from "../middlewares/authMiddleware.js";
@@ -15,5 +16,5 @@ router.post('/ats-admin', protect, authorize('SUPER_ADMIN'), createATSAdmin);
 router.post('/technician', protect, authorize('ATS_ADMIN'), createTechnician);
 // router.get('/technicians', protect, authorize('ATS_ADMIN'), getAllTechnicians);
 router.get('/technicians', protect, authorize('ATS_ADMIN'), getAllUserAtCenter);
-
+router.get("/techniciansByAts/:id",protect,authorize("SUPER_ADMIN","OFFICER"),getTechniciansByATS)
 export default router;
