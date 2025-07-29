@@ -133,3 +133,29 @@ export const getALLVehiclesAts=asyncHandler(async(req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
   })
+
+  export const getVehiclesAtAllATS=asyncHandler(async(req,res)=>{
+    try{
+      const vehicles=await Vehicle.find({});
+      if(vehicles.length===0){
+        return res.status(404).json({message:"No vehicles found"});
+      }
+      res.status(200).json(vehicles);
+    }
+    catch(err){
+      res.status(500).json({ message: "Server error", error: err.message });
+    }
+  })
+  export const getVehiclesByATS=asyncHandler(async(req,res)=>{
+    const {id}=req.params;
+    try{
+      const response=await Vehicle.find({atsCenter:id});
+      if(response.length===0){
+        return res.status(404).json({message:"No vehicles found"});
+      }
+      res.status(200).json(response);
+    }
+    catch(err){
+      res.status(500).json({ message: "Server error", error: err.message})
+    }
+  })
