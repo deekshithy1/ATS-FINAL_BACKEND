@@ -20,7 +20,9 @@ dotenv.config();
 const app = express();
 
 app.use(express.json()); 
-app.use(cors());
+app.use(cors({ origin: 'https://atstesting.netlify.app',
+  credentials: true}));
+
 app.use(morgan('dev'));
 
 // Routes
