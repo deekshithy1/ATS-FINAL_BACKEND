@@ -32,7 +32,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/centers', atsCenterRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/tests', testInstanceRoutes);
-app.use('/api/nic',checkAtsStatus, nicRoutes);
+app.use('/api/nic', nicRoutes);
 
 // Error handling
 app.use(notFound);
