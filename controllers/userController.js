@@ -113,3 +113,43 @@ export const getTechniciansByATS=asyncHandler(async(req,res)=>{
     res.status(500).json({"message":"error"})
   }
 })
+export const BlockUser = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+ console.log(email)
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    user.isBlocked = true; // or any flag to represent blocked user
+    await user.save();
+
+    res.status(200).json({ message: "User has been blocked" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error blocking user" });
+  }
+});
+export const unBlockUser = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    user.isBlocked = false; // or any flag to represent blocked user
+    await user.save();
+
+    res.status(200).json({ message: "User has been blocked" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error blocking user" });
+  }
+});

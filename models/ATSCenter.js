@@ -9,7 +9,12 @@ const centerSchema = new mongoose.Schema(
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
     ipWhitelist: [String],
+    isSuspended :{
+      type:Boolean,
+      default:false,
+    },
   },
+
   { timestamps: true }
 );
 

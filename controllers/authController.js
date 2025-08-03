@@ -26,6 +26,10 @@ export const loginUser = asyncHandler(async (req, res) => {
   if (user.role !== "SUPER_ADMIN") {
     user = await user.populate("atsCenter");
   }
+  if(user.atsCenter?.isSuspended===true){
+    res.status(404);
+    throw new Error("ATS BLOCKED");
+  }
 
   const token = jwt.sign(
     {
@@ -53,7 +57,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private
 export const getLoggedInUser = asyncHandler(async (req, res) => {
-  let user = await User.findById(req.user.id).select("-password");
+  let user = await User.findById(req.user.id).select("-password").populate("atsCenter");;
 
   if (!user) {
     res.status(404);

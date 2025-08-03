@@ -26,6 +26,7 @@ const vehicleSchema = new mongoose.Schema(
       imgEngine: String,
       imgChassis: String,
     },
+    
   },
   { timestamps: true }
 );

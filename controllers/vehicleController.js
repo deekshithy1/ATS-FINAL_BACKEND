@@ -127,6 +127,8 @@ export const getALLVehiclesAts=asyncHandler(async(req, res) => {
     if(vehicle.length===0){
       return res.status(404).json({message:"No vehicles found"});
     }
+    vehicle.sort((a, b) => new Date(b.laneEntryTime) - new Date(a.laneEntryTime));
+
     res.status(200).json(vehicle);
   }
   catch(err){

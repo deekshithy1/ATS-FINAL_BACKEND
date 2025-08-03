@@ -8,16 +8,20 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: {
       type: String,
-      enum: ["SUPER_ADMIN", "ATS_ADMIN", "TECHNICIAN","OFFICER"],
+      enum: ["SUPER_ADMIN", "ATS_ADMIN", "TECHNICIAN","OFFICER","MVI"],
       required: true,
     },
     atsCenter: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ATSCenter",
       required: function () {
-        return this.role !== "SUPER_ADMIN"||this.role !== "OFFICER";
+        return this.role !== "SUPER_ADMIN"&&this.role !== "OFFICER";
       },
     },
+    isBlocked:{
+      type:Boolean,
+      default:false,
+    }
   },
   { timestamps: true }
 );

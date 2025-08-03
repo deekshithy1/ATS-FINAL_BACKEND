@@ -9,9 +9,9 @@ import { protect, authorize } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/ready', protect, authorize('ATS_ADMIN'), getVehiclesReadyForApproval);
+router.get('/ready', protect, authorize('ATS_ADMIN',"ATS_OWNER"), getVehiclesReadyForApproval);
 router.post('/send', protect, authorize('ATS_ADMIN'), sendToNIC);
 router.get('/log/:bookingId', protect, authorize('ATS_ADMIN'), getNICLogStatus);
-router.get('/logs/allvehicles',protect,authorize('ATS_ADMIN'),getAllVehicles);
+router.get('/logs/allvehicles',protect,authorize('ATS_ADMIN',"ATS_OWNER"),getAllVehicles);
 
 export default router;

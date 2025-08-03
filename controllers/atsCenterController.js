@@ -44,3 +44,35 @@ export const getCenterByCode = asyncHandler(async (req, res) => {
 
   res.json(center);
 });
+
+
+
+export const suspendAts = asyncHandler(async (req, res) => {
+  const { id } = req.body;
+console.log(id)
+  const center = await ATSCenter.findById(id);
+
+  if (!center) {
+    res.status(404);
+    throw new Error("ATS Center not found");
+  }
+
+  center.isSuspended = true;
+  await center.save();
+
+  res.json({ message: "ATS has been suspended" });
+});
+
+
+
+export const unBlockATS=asyncHandler((async(req,res)=>{
+  const {id}=req.body;
+  const center=await ATSCenter.findById(id);
+  if (!center) {
+    res.status(404);
+    throw new Error("ATS Center not found");
+  }
+  center.isSuspended=false;
+ await center.save();
+  res.json({ message: "ATS has been UNBLOCKED" });
+}))

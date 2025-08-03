@@ -97,6 +97,19 @@ export const getPendingVisualTests = asyncHandler(async (req, res) => {
   res.json({ pending: pendingVisuals });
 });
 
+export const getPendingVisualTestVehicles=asyncHandler(async(req,res)=>{
+  const vehicles=await Vehicle.find({atsCenter:req.user.atsCenter});
+   const pendingVisuals = [];
+  for (const vehicle of vehicles) {
+    const visualTest = await VisualTest.findOne({ vehicle: vehicle._id });
+    if (!visualTest || visualTest.isCompleted === false) {
+      pendingVisuals.push(vehicle);
+    }
+  }
+  pendingVisuals.sort((a, b) => new Date(b.laneEntryTime) - new Date(a.laneEntryTime));
+
+  res.json({ pending: pendingVisuals });
+})
 
 
 // @route   POST /api/test/visual/submit

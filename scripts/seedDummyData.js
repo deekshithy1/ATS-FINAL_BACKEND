@@ -76,7 +76,7 @@ const seed = async () => {
     // Seed 30 vehicles
     const today = new Date();
     const dateStr = formatDate(today);
-    const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'APPROVED'];
+    const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED'];
 
     for (let i = 1; i <= 30; i++) {
       const regnNo = `KA01BB${1000 + i}`;
@@ -117,7 +117,7 @@ const seed = async () => {
           vehicle: vehicle._id,
           rule189_8a: "P",
           rule189_8b: "NA",
-          isCompleted: false,
+          isCompleted: true,
         });
       }
 
