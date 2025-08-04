@@ -26,7 +26,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   if (user.role !== "SUPER_ADMIN") {
     user = await user.populate("atsCenter");
   }
-  if(user.atsCenter?.isSuspended===true){
+  if(user.atsCenter?.isSuspended===true||user.isBlocked===true){
     res.status(404);
     throw new Error("ATS BLOCKED");
   }
